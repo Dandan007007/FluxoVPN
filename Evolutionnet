@@ -1,0 +1,217 @@
+import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:v2ray_flutter/v2ray_flutter.dart';
+
+void main() => runApp(const FluxoVPNApp());
+
+class FluxoVPNApp extends StatelessWidget {
+  const FluxoVPNApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'FLUXO VPN',
+      theme: ThemeData.dark(),
+      home: const TelaLogin(),
+    );
+  }
+}
+
+class TelaLogin extends StatefulWidget {
+  const TelaLogin({super.key});
+
+  @override
+  State<TelaLogin> createState() => _TelaLoginState();
+}
+
+class _TelaLoginState extends State<TelaLogin> {
+  final _usuarioCtrl = TextEditingController();
+  final _senhaCtrl = TextEditingController();
+  bool _carregando = false;
+
+  // ✅ DADOS JÁ PREENCHIDOS COM SEU LINK E DOMÍNIO!
+  static const String enderecoVps = "flox.azion.app";
+  static const int portaVps = 443;
+  static const String idXray = "e906df4a-eaba-4f54-978b-6df2606d4243";
+  static const String caminho = "/";
+  static const String sni = "m.vitrineempresas.tim.com.br";
+
+  Future<void> _entrar() async {
+    if (_usuarioCtrl.text.isEmpty || _senhaCtrl.text.isEmpty) return;
+    setState(() => _carregando = true);
+
+    await Permission.vpnService.request();
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TelaPrincipal(
+            usuario: _usuarioCtrl.text,
+            senha: _senhaCtrl.text,
+            endereco: enderecoVps,
+            porta: portaVps,
+            id: idXray,
+            caminho: caminho,
+            sni: sni,
+          ),
+        ),
+      );
+    }
+    setState(() => _carregando = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121218),
+      body: Container(
+        padding: const EdgeInsets.all(30),
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(colors: [Color(0xFF1A1A2E), Color(0xFF121218)]),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield, size: 70, color: Color(0xFF7B2FFD)),
+            const SizedBox(height: 15),
+            const Text("FLUXO VPN", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 40),
+
+            TextField(
+              controller: _usuarioCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "Usuário",
+                labelStyle: const TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: Colors.grey[900],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: _senhaCtrl,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "Senha",
+                labelStyle: const TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: Colors.grey[900],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: const Color(0xFF7B2FFD),
+                ),
+                onPressed: _carregando ? null : _entrar,
+                child: _carregando
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("ACESSAR", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class TelaPrincipal extends StatefulWidget {
+  final String usuario, senha, endereco, id, caminho, sni;
+  final int porta;
+  const TelaPrincipal({super.key, required this.usuario, required this.senha, required this.endereco, required this.porta, required this.id, required this.caminho, required this.sni});
+
+  @override
+  State<TelaPrincipal> createState() => _TelaPrincipalState();
+}
+
+class _TelaPrincipalState extends State<TelaPrincipal> {
+  bool _conectado = false;
+  String _status = "Desconectado";
+
+  Future<void> _conectar() async {
+    setState(() => _status = "Conectando...");
+    try {
+      await V2rayFlutter.startVpn(
+        address: widget.endereco,
+        port: widget.porta,
+        id: widget.id,
+        path: widget.caminho,
+        security: "tls",
+        username: widget.usuario,
+        password: widget.senha,
+        sni: widget.sni,
+        allowInsecure: true,
+        type: "xhttp",
+      );
+      setState(() { _conectado = true; _status = "VOCÊ ESTÁ PROTEGIDO ✅"; });
+    } catch (e) {
+      setState(() => _status = "Erro: verifique usuário/senha ou dados da VPS");
+    }
+  }
+
+  Future<void> _desconectar() async {
+    await V2rayFlutter.stopVpn();
+    setState(() { _conectado = false; _status = "Desconectado"; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121218),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(colors: [Color(0xFF1A1A2E), Color(0xFF121218)]),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield, size: 60, color: Color(0xFF7B2FFD)),
+            const SizedBox(height: 10),
+            Text("Olá, ${widget.usuario}", style: const TextStyle(fontSize: 22, color: Colors.white70)),
+            const SizedBox(height: 40),
+
+            GestureDetector(
+              onTap: _conectado ? _desconectar : _conectar,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: _conectado
+                      ? const LinearGradient(colors: [Color(0xFF165DFF), Color(0xFF7B2FFD)])
+                      : null,
+                  color: _conectado ? null : Colors.grey[900],
+                  border: Border.all(color: _conectado ? const Color(0xFF00E0FF) : Colors.grey[700]!, width: 4),
+                  boxShadow: _conectado ? [BoxShadow(color: const Color(0xFF7B2FFD).withOpacity(0.4), blurRadius: 30)] : null,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(_conectado ? Icons.lock : Icons.lock_open, size: 50, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text(_conectado ? "PROTEGIDO" : "CONECTAR", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            Text(_status, style: const TextStyle(fontSize: 18, color: Colors.white70)),
+            const SizedBox(height: 20),
+            Text("📍 Servidor: ${widget.endereco}:${widget.porta}", style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
