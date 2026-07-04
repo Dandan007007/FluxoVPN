@@ -1,0 +1,16 @@
+name: fluxo_vpn
+description: App FLUXO VPN - Conexão segura com VPS MANIA
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  permission_handler: ^11.0.1
+  v2ray_flutter: ^0.0.8
+
+flutter:
+  uses-material-design: true
+
