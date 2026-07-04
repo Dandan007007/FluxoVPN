@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   permission_handler: ^11.0.1
-  v2ray_flutter: ^0.0.8
+  v2ray: ^0.1.2  # ✅ Biblioteca válida e atualizada!
 
 flutter:
   uses-material-design: true
